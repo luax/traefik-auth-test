@@ -1,0 +1,106 @@
+version: "3"
+
+services:
+  db:
+    build: "services/postgres"
+    restart: "always"
+    env_file: ".env"
+    environment:
+      POSTGRES_DB: "ludvig"
+      POSTGRES_USER: "ludvig"
+      POSTGRES_PASSWORD: "ludvig"
+      DATABASE_URL: "postgres://ludvig:ludvig@db:5432/ludvig"
+    ports:
+      - "5432:5432"
+    networks:
+      - "internal"
+
+  auth:
+    build:
+      context: "."
+      dockerfile: "./docker/Dockerfile.golang"
+      args:
+        - "SERVICE_NAME=auth"
+        - "PROJECT_NAME"
+    env_file: ".env"
+    ports:
+      - "8080"
+    volumes:
+      - ".:/go/src/${PROJECT_NAME}"
+    labels:
+      - "traefik.backend=auth"
+      - "traefik.docker.network=external"
+      - "traefik.enable=true"
+      - "traefik.port=8080"
+      - "traefik.frontend.rule=PathPrefixStrip:/api/auth"
+    networks:
+      - "external"
+
+  search:
+    build:
+      context: "."
+      dockerfile: "./docker/Dockerfile.golang"
+      args:
+        - "SERVICE_NAME=search"
+        - "PROJECT_NAME"
+    env_file: ".env"
+    ports:
+      - "8080"
+    volumes:
+      - ".:/go/src/${PROJECT_NAME}"
+    labels:
+      - "traefik.backend=search"
+      - "traefik.docker.network=external"
+      - "traefik.enable=true"
+      - "traefik.port=8080"
+      - "traefik.frontend.rule=PathPrefixStrip:/api/search"
+      - "traefik.frontend.auth.forward.address=http://auth:8080"
+      - "traefik.frontend.auth.forward.trustForwardHeader=true"
+      - "traefik.frontend.auth.headerField=X-WebAuth-User"
+    networks:
+      - "external"
+      - "internal"
+    depends_on:
+      - "db"
+
+  web:
+    build:
+      context: "."
+      dockerfile: "./docker/Dockerfile.golang"
+      args:
+        - "SERVICE_NAME=web"
+        - "PROJECT_NAME"
+    env_file: ".env"
+    ports:
+      - "8080"
+    volumes:
+      - ".:/go/src/${PROJECT_NAME}"
+    labels:
+      - "traefik.backend=web"
+      - "traefik.docker.network=external"
+      - "traefik.enable=true"
+      - "traefik.port=8080"
+      - "traefik.frontend.rule=PathPrefix:/"
+    networks:
+      - "external"
+      - "internal"
+
+  traefik:
+    build: "services/traefik"
+    command: "-c /traefik.toml"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./services/traefik/traefik.toml:/traefik.toml"
+    networks:
+      - "external"
+    labels:
+      - "traefik.docker.network=external"
+
+networks:
+  external:
+    external: true
+  internal:
+    external: false

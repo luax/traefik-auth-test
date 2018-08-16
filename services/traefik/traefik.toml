@@ -1,0 +1,20 @@
+debug = true
+logLevel = "INFO"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+
+[accessLog]
+
+[api]
+
+[ping]
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "docker.localhost"
+watch = true
+exposedByDefault = false
+usebindportip = false
+swarmMode = false
