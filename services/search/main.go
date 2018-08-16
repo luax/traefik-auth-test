@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	db := postgres.NewPostgres()
+	dbUrl := os.Getenv("DATABASE_URL")
+	db := postgres.NewPostgres(dbUrl)
 	defer db.Close()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		utils.PrintRequest(r)
