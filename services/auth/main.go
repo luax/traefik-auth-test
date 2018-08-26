@@ -25,9 +25,8 @@ func main() {
 			return
 		}
 		cookieValue := c.Value
-		var msg Message
 		if cookieValue == authCookieValue {
-			msg = Message{
+			msg := Message{
 				Message: "OK",
 			}
 			utils.Ok(w, msg)
